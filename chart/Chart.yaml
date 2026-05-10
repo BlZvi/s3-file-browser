@@ -1,0 +1,12 @@
+apiVersion: v2
+name: s3-viewer
+description: A web-based S3 bucket viewer and manager
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/OWNER/s3-viewer
+sources:
+  - https://github.com/OWNER/s3-viewer
+maintainers:
+  - name: MAINTAINER_NAME
+    email: maintainer@example.com

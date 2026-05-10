@@ -1,0 +1,119 @@
+# -- Number of replicas for the s3-viewer deployment
+replicaCount: 1
+
+image:
+  # -- Container image repository
+  repository: ghcr.io/OWNER/s3-viewer
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (defaults to the chart appVersion)
+  tag: ""
+
+# -- Secrets for pulling images from private registries
+imagePullSecrets: []
+
+# -- Override the chart name
+nameOverride: ""
+# -- Override the full release name
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Whether to create a service account
+  create: true
+  # -- Whether to automount the service account token
+  automount: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use (generated if not set and create is true)
+  name: ""
+
+# -- Annotations to add to the pod
+podAnnotations: {}
+
+# -- Labels to add to the pod
+podLabels: {}
+
+service:
+  # -- Kubernetes service type
+  type: ClusterIP
+  # -- Service port
+  port: 3000
+
+ingress:
+  # -- Enable ingress
+  enabled: false
+  # -- Ingress class name
+  className: ""
+  # -- Ingress annotations
+  annotations: {}
+    # kubernetes.io/ingress.class: traefik
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  # -- Ingress hosts configuration
+  hosts:
+    - host: s3-viewer.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # -- Ingress TLS configuration
+  tls: []
+  #  - secretName: s3-viewer-tls
+  #    hosts:
+  #      - s3-viewer.local
+
+resources: {}
+  # We recommend setting resource requests and limits.
+  # The following values are suggestions for a small deployment:
+  # requests:
+  #   cpu: 50m
+  #   memory: 128Mi
+  # limits:
+  #   cpu: 500m
+  #   memory: 256Mi
+
+autoscaling:
+  # -- Enable horizontal pod autoscaling
+  enabled: false
+  # -- Minimum number of replicas
+  minReplicas: 1
+  # -- Maximum number of replicas
+  maxReplicas: 3
+  # -- Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# -- Node selector for pod scheduling
+nodeSelector: {}
+
+# -- Tolerations for pod scheduling
+tolerations: []
+
+# -- Affinity rules for pod scheduling
+affinity: {}
+
+# -- Non-sensitive environment variables passed to the application via ConfigMap.
+# Uncomment entries as needed. NODE_ENV, PORT, and HOST are hardcoded in the
+# deployment and do not need to be specified here.
+env:
+  ORIGIN: "http://localhost:3000"
+  S3_DEFAULT_REGION: "us-east-1"
+  # S3_DEFAULT_ENDPOINT: ""
+  # S3_ENDPOINT: ""
+  # S3_REGION: "us-east-1"
+  # OIDC_ISSUER: ""
+  # OIDC_CLIENT_ID: ""
+  # OIDC_SCOPES: "openid profile email"
+
+# -- Sensitive environment variables passed to the application via a Kubernetes Secret.
+# Values are base64-encoded automatically by the chart.
+# Uncomment entries as needed.
+secrets:
+  SESSION_SECRET: ""
+  # S3_ACCESS_KEY: ""
+  # S3_SECRET_KEY: ""
+  # S3_SESSION_TOKEN: ""
+  # OIDC_CLIENT_SECRET: ""
+
+# -- Name of an existing Kubernetes Secret to use instead of creating one.
+# When set, the chart will NOT create a Secret resource and will reference
+# this secret in the deployment's envFrom instead.
+existingSecret: ""

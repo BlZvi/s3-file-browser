@@ -91,6 +91,132 @@ Copy [`.env.example`](.env.example) and adjust for your environment. Key variabl
 - `SESSION_SECRET` must be a strong random string in production (`openssl rand -base64 48`)
 - Deploy behind a reverse proxy (Nginx, Traefik, Caddy) for TLS and rate limiting
 
+## Deployment
+
+### Docker Compose
+
+See [Quick Start](#quick-start) above for `docker compose` usage.
+
+### Container Image
+
+Pre-built multi-arch Docker images (amd64 + arm64) are published to GitHub Container Registry on every push to `main` and on version tags:
+
+```bash
+docker pull ghcr.io/OWNER/s3-viewer:latest
+```
+
+No authentication required — images are publicly available.
+
+Available tags:
+- `latest` — latest build from `main` branch
+- `x.y.z` — specific version (e.g., `1.0.0`)
+- `x.y` — minor version (e.g., `1.0`)
+- `<sha>` — specific commit SHA
+
+### Kubernetes (Helm)
+
+A Helm chart is included for deploying to Kubernetes clusters (including k3s).
+
+#### Quick Start
+
+```bash
+helm install s3-viewer ./chart \
+  --set secrets.SESSION_SECRET="your-secret-here-min-32-chars!!" \
+  --set env.ORIGIN="https://s3-viewer.example.com"
+```
+
+#### With Ingress (k3s / Traefik)
+
+```bash
+helm install s3-viewer ./chart \
+  --set secrets.SESSION_SECRET="your-secret-here-min-32-chars!!" \
+  --set env.ORIGIN="https://s3-viewer.example.com" \
+  --set ingress.enabled=true \
+  --set ingress.className=traefik \
+  --set ingress.hosts[0].host=s3-viewer.example.com \
+  --set ingress.hosts[0].paths[0].path=/ \
+  --set ingress.hosts[0].paths[0].pathType=Prefix
+```
+
+#### With Fixed S3 Credentials (skip login form)
+
+```bash
+helm install s3-viewer ./chart \
+  --set secrets.SESSION_SECRET="your-secret-here-min-32-chars!!" \
+  --set secrets.S3_ACCESS_KEY="your-access-key" \
+  --set secrets.S3_SECRET_KEY="your-secret-key" \
+  --set env.S3_ENDPOINT="https://s3.amazonaws.com" \
+  --set env.ORIGIN="https://s3-viewer.example.com"
+```
+
+#### Using a Custom Values File
+
+Create a `my-values.yaml`:
+
+```yaml
+image:
+  repository: ghcr.io/OWNER/s3-viewer
+  tag: latest
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: s3-viewer.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  ORIGIN: "https://s3-viewer.example.com"
+  S3_DEFAULT_ENDPOINT: "https://minio.internal:9000"
+  S3_DEFAULT_REGION: "us-east-1"
+
+secrets:
+  SESSION_SECRET: "your-secret-here-min-32-chars!!"
+```
+
+Then install:
+
+```bash
+helm install s3-viewer ./chart -f my-values.yaml
+```
+
+#### Using an Existing Secret
+
+If you prefer to manage secrets externally (recommended for production):
+
+```bash
+kubectl create secret generic s3-viewer-secrets \
+  --from-literal=SESSION_SECRET="your-secret-here" \
+  --from-literal=S3_ACCESS_KEY="your-key" \
+  --from-literal=S3_SECRET_KEY="your-secret"
+
+helm install s3-viewer ./chart \
+  --set existingSecret=s3-viewer-secrets \
+  --set env.ORIGIN="https://s3-viewer.example.com"
+```
+
+#### Chart Values Reference
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `image.repository` | Container image repository | `ghcr.io/OWNER/s3-viewer` |
+| `image.tag` | Image tag (defaults to appVersion) | `""` |
+| `service.type` | Kubernetes service type | `ClusterIP` |
+| `service.port` | Service port | `3000` |
+| `ingress.enabled` | Enable ingress | `false` |
+| `ingress.className` | Ingress class name | `""` |
+| `env.ORIGIN` | External URL of the app | `http://localhost:3000` |
+| `env.S3_DEFAULT_ENDPOINT` | Pre-fill S3 endpoint in login | `""` |
+| `env.S3_DEFAULT_REGION` | Pre-fill S3 region in login | `us-east-1` |
+| `secrets.SESSION_SECRET` | Session encryption secret | `""` (required) |
+| `secrets.S3_ACCESS_KEY` | Fixed S3 access key | `""` |
+| `secrets.S3_SECRET_KEY` | Fixed S3 secret key | `""` |
+| `existingSecret` | Use existing K8s Secret | `""` |
+| `autoscaling.enabled` | Enable HPA | `false` |
+| `resources` | CPU/memory resource limits | `{}` |
+
 ## Development
 
 ```bash
