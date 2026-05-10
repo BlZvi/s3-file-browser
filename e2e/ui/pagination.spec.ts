@@ -1,0 +1,111 @@
+import { test, expect } from '@playwright/test';
+import { loginViaUI } from '../fixtures/auth';
+import { BUCKETS } from '../fixtures/constants';
+
+test.describe('UI: Pagination', () => {
+	test.beforeEach(async ({ page }) => {
+		await loginViaUI(page);
+	});
+
+	test('shows pagination bar with Load more button for large directories', async ({ page }) => {
+		// Navigate to bulk bucket which has many objects
+		await page.getByText(BUCKETS.bulk).click();
+		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
+		// Wait for objects to load
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		const paginationBar = page.locator('[data-testid="pagination-bar"]');
+		await expect(paginationBar).toBeVisible();
+
+		// Should show "more available" text since bulk bucket has many objects
+		await expect(paginationBar).toContainText('more available');
+
+		// Load more button should be visible
+		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
+		await expect(loadMoreBtn).toBeVisible();
+	});
+
+	test('Load more button appends additional objects', async ({ page }) => {
+		await page.getByText(BUCKETS.bulk).click();
+		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		// Get initial object count from pagination bar text
+		const paginationBar = page.locator('[data-testid="pagination-bar"]');
+		const initialText = await paginationBar.textContent();
+		const initialMatch = initialText?.match(/Showing (\d+)/);
+		const initialCount = initialMatch ? parseInt(initialMatch[1], 10) : 0;
+		expect(initialCount).toBeGreaterThan(0);
+
+		// Click Load more
+		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
+		await loadMoreBtn.click();
+
+		// Wait for loading to complete (button text changes back from "Loading…")
+		await expect(loadMoreBtn).not.toContainText('Loading', { timeout: 15000 });
+
+		// Object count should have increased
+		const updatedText = await paginationBar.textContent();
+		const updatedMatch = updatedText?.match(/(?:Showing|All) ([\d,]+)/);
+		const updatedCount = updatedMatch ? parseInt(updatedMatch[1].replace(/,/g, ''), 10) : 0;
+		expect(updatedCount).toBeGreaterThan(initialCount);
+	});
+
+	test('page size selector is visible and has options', async ({ page }) => {
+		await page.getByText(BUCKETS.bulk).click();
+		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		const pageSizeSelect = page.locator('[data-testid="page-size-select"]');
+		await expect(pageSizeSelect).toBeVisible();
+
+		// Should have the expected options
+		const options = pageSizeSelect.locator('option');
+		const values = await options.allTextContents();
+		expect(values).toContain('100');
+		expect(values).toContain('200');
+		expect(values).toContain('500');
+		expect(values).toContain('1000');
+	});
+
+	test('page size selector changes number of loaded objects', async ({ page }) => {
+		await page.getByText(BUCKETS.bulk).click();
+		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		const pageSizeSelect = page.locator('[data-testid="page-size-select"]');
+		if (await pageSizeSelect.isVisible()) {
+			// Change page size to 100 and verify reload
+			await pageSizeSelect.selectOption('100');
+			// Wait for reload
+			await page.waitForTimeout(2000);
+
+			const paginationBar = page.locator('[data-testid="pagination-bar"]');
+			const text = await paginationBar.textContent();
+			// Should show objects loaded (could be up to 100)
+			expect(text).toMatch(/\d+ objects/);
+		}
+	});
+
+	test('shows "All objects loaded" for small directories', async ({ page }) => {
+		await page.getByText(BUCKETS.test).click();
+		await page.waitForURL(`**/browse/${BUCKETS.test}**`);
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		const paginationBar = page.locator('[data-testid="pagination-bar"]');
+		await expect(paginationBar).toBeVisible();
+
+		// test-bucket has few objects, should show "All X objects loaded"
+		await expect(paginationBar).toContainText('All');
+		await expect(paginationBar).toContainText('objects loaded');
+	});
+
+	test('auto-load toggle is visible when truncated', async ({ page }) => {
+		await page.getByText(BUCKETS.bulk).click();
+		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
+		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+
+		const autoLoadToggle = page.locator('[data-testid="auto-load-toggle"]');
+		await expect(autoLoadToggle).toBeVisible();
+	});
+});

@@ -1,0 +1,42 @@
+services:
+  # MinIO only - for local development
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Client - Creates test buckets with sample data
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin;
+      mc mb --ignore-existing local/test-bucket;
+      mc mb --ignore-existing local/demo-data;
+      echo 'Hello from S3 Viewer!' > /tmp/hello.txt;
+      echo '{\"name\": \"test\", \"version\": 1}' > /tmp/test.json;
+      mc cp /tmp/hello.txt local/test-bucket/hello.txt;
+      mc cp /tmp/test.json local/test-bucket/test.json;
+      mc cp /tmp/hello.txt local/test-bucket/documents/readme.txt;
+      mc cp /tmp/test.json local/test-bucket/documents/config/settings.json;
+      mc cp /tmp/hello.txt local/demo-data/sample.txt;
+      echo 'Setup complete!';
+      "
+
+volumes:
+  minio-data:
