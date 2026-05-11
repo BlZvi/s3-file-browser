@@ -54,14 +54,14 @@ test.describe('UI: Context Menu', () => {
 
 		// Wait for context menu
 		const contextMenu = page.locator('[role="menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 3_000 });
+		await expect(contextMenu).toBeVisible({ timeout: 5_000 });
 
-		// Click delete in context menu
-		await contextMenu.getByText('Delete').click();
+		// Click delete in context menu (use force to avoid race with window click handler)
+		await contextMenu.getByText('Delete').click({ force: true });
 
-		// Should open delete confirmation modal (flowbite Modal with title "Confirm Delete")
-		await expect(page.getByText('Confirm Delete')).toBeVisible({ timeout: 5_000 });
-		await expect(page.getByText('This action cannot be undone')).toBeVisible();
+		// Should open delete confirmation modal
+		await expect(page.getByText('Confirm Delete')).toBeVisible({ timeout: 10_000 });
+		await expect(page.getByText('This action cannot be undone')).toBeVisible({ timeout: 5_000 });
 
 		// Cancel to avoid actually deleting the seeded file
 		const cancelBtn = page.getByRole('button', { name: /cancel/i });

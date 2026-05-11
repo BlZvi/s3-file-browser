@@ -27,7 +27,7 @@ test.describe('API: Delete', () => {
 		const headRes = await authedRequest.get(
 			`/api/s3/head?bucket=${BUCKETS.test}&key=${encodeURIComponent(key)}`
 		);
-		expect(headRes.status()).toBe(500); // Object not found
+		expect(headRes.status()).toBe(404); // Object not found
 	});
 
 	test('delete multiple objects', async ({ authedRequest }) => {

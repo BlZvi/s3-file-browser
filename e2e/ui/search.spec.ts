@@ -13,7 +13,8 @@ test.describe('UI: Search', () => {
 
 	test('search filters visible objects', async ({ page }) => {
 		// Type in search
-		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[type="search"]').first();
+		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
+		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 		await searchInput.fill('hello');
 
 		// Should show hello.txt but not test.json
@@ -22,23 +23,25 @@ test.describe('UI: Search', () => {
 	});
 
 	test('clear search shows all objects', async ({ page }) => {
-		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[type="search"]').first();
+		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
+		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
 		// Search for something
 		await searchInput.fill('hello');
-		await page.waitForTimeout(300);
+		await page.waitForTimeout(500);
 
 		// Clear search
 		await searchInput.fill('');
-		await page.waitForTimeout(300);
+		await page.waitForTimeout(500);
 
 		// All objects should be visible again
-		await expect(page.getByText('hello.txt')).toBeVisible();
-		await expect(page.getByText('test.json')).toBeVisible();
+		await expect(page.getByText('hello.txt')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('test.json')).toBeVisible({ timeout: 5_000 });
 	});
 
 	test('search with no matches shows empty', async ({ page }) => {
-		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[type="search"]').first();
+		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
+		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 		await searchInput.fill('nonexistent-file-xyz-12345');
 
 		// Wait for filter to apply

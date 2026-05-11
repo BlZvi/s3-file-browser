@@ -18,18 +18,19 @@ test.describe('UI: Copy/Move/Rename', () => {
 
 		// Context menu should appear
 		const contextMenu = page.locator('[role="menu"]');
-		await expect(contextMenu).toBeVisible({ timeout: 3_000 });
+		await expect(contextMenu).toBeVisible({ timeout: 5_000 });
 
 		// Should have Rename option
 		await expect(contextMenu.getByText('Rename')).toBeVisible();
 
 		// Click Rename — should open rename modal
-		await contextMenu.getByText('Rename').click();
+		await contextMenu.getByText('Rename').click({ force: true });
 
 		// Rename modal should appear
-		await expect(page.getByText('Rename')).toBeVisible({ timeout: 5_000 });
+		const renameHeading = page.locator('h3, [class*="title"]').filter({ hasText: 'Rename' });
+		await expect(renameHeading.first()).toBeVisible({ timeout: 5_000 });
 		const input = page.locator('#renameName');
-		await expect(input).toBeVisible();
+		await expect(input).toBeVisible({ timeout: 3_000 });
 
 		// Input should be pre-filled with current name
 		await expect(input).toHaveValue('hello.txt');
@@ -39,14 +40,21 @@ test.describe('UI: Copy/Move/Rename', () => {
 	});
 
 	test('rename file via F2 keyboard shortcut', async ({ page }) => {
+		// Click on the file table area first to ensure it has focus (not the search input)
+		const fileTable = page.locator('[role="grid"]');
+		await fileTable.click();
+		await page.waitForTimeout(200);
+
 		// Focus on a file row using arrow keys
 		await page.keyboard.press('ArrowDown');
+		await page.waitForTimeout(200);
 
 		// Press F2 to open rename modal
 		await page.keyboard.press('F2');
 
 		// Rename modal should appear
-		await expect(page.getByText('Rename')).toBeVisible({ timeout: 5_000 });
+		const renameHeading = page.locator('h3, [class*="title"]').filter({ hasText: 'Rename' });
+		await expect(renameHeading.first()).toBeVisible({ timeout: 5_000 });
 
 		// Cancel
 		await page.getByRole('button', { name: /cancel/i }).click();

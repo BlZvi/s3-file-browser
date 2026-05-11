@@ -16,20 +16,26 @@ test.describe('UI: Transfer Manager', () => {
 	});
 
 	test('transfer manager appears during upload', async ({ page }) => {
-		// Trigger a file upload
-		const fileInput = page.locator('input[type="file"]').first();
+		// Open the upload modal by clicking the Upload button in the toolbar
+		const uploadBtn = page.locator('button[title="Upload"]');
+		await expect(uploadBtn).toBeVisible({ timeout: 5_000 });
+		await uploadBtn.click();
 
-		// Create a small test file
+		// Wait for the upload modal to appear
+		await expect(page.getByText('Upload Files')).toBeVisible({ timeout: 5_000 });
+
+		// Now the file input is in the DOM inside the modal
+		const fileInput = page.locator('input[type="file"]').first();
 		await fileInput.setInputFiles({
 			name: `transfer-test-${Date.now()}.txt`,
 			mimeType: 'text/plain',
 			buffer: Buffer.from('Transfer manager test content')
 		});
 
-		// Look for upload button/confirm in the upload modal
-		const uploadBtn = page.getByRole('button', { name: /upload/i });
-		if (await uploadBtn.isVisible({ timeout: 3000 })) {
-			await uploadBtn.click();
+		// Click the Upload button in the modal footer to start the upload
+		const submitBtn = page.getByRole('button', { name: /upload 1 file/i });
+		if (await submitBtn.isVisible({ timeout: 3000 })) {
+			await submitBtn.click();
 		}
 
 		// Transfer manager should appear
@@ -38,7 +44,13 @@ test.describe('UI: Transfer Manager', () => {
 	});
 
 	test('transfer manager shows completed transfers', async ({ page }) => {
-		// Upload a file
+		// Open the upload modal
+		const uploadBtn = page.locator('button[title="Upload"]');
+		await expect(uploadBtn).toBeVisible({ timeout: 5_000 });
+		await uploadBtn.click();
+		await expect(page.getByText('Upload Files')).toBeVisible({ timeout: 5_000 });
+
+		// Set file
 		const fileInput = page.locator('input[type="file"]').first();
 		await fileInput.setInputFiles({
 			name: `transfer-complete-${Date.now()}.txt`,
@@ -46,9 +58,10 @@ test.describe('UI: Transfer Manager', () => {
 			buffer: Buffer.from('test')
 		});
 
-		const uploadBtn = page.getByRole('button', { name: /upload/i });
-		if (await uploadBtn.isVisible({ timeout: 3000 })) {
-			await uploadBtn.click();
+		// Submit upload
+		const submitBtn = page.getByRole('button', { name: /upload 1 file/i });
+		if (await submitBtn.isVisible({ timeout: 3000 })) {
+			await submitBtn.click();
 		}
 
 		// Wait for transfer to complete
@@ -57,12 +70,18 @@ test.describe('UI: Transfer Manager', () => {
 		// Should show completed status
 		const tm = page.locator('[data-testid="transfer-manager"]');
 		if (await tm.isVisible({ timeout: 5000 })) {
-			await expect(tm).toContainText(/complete|done/i);
+			await expect(tm).toContainText(/complete|done|history/i);
 		}
 	});
 
 	test('transfer manager can be collapsed and expanded', async ({ page }) => {
-		// First trigger a transfer to make the manager visible
+		// Open the upload modal
+		const uploadBtn = page.locator('button[title="Upload"]');
+		await expect(uploadBtn).toBeVisible({ timeout: 5_000 });
+		await uploadBtn.click();
+		await expect(page.getByText('Upload Files')).toBeVisible({ timeout: 5_000 });
+
+		// Set file
 		const fileInput = page.locator('input[type="file"]').first();
 		await fileInput.setInputFiles({
 			name: `transfer-collapse-${Date.now()}.txt`,
@@ -70,9 +89,10 @@ test.describe('UI: Transfer Manager', () => {
 			buffer: Buffer.from('test')
 		});
 
-		const uploadBtn = page.getByRole('button', { name: /upload/i });
-		if (await uploadBtn.isVisible({ timeout: 3000 })) {
-			await uploadBtn.click();
+		// Submit upload
+		const submitBtn = page.getByRole('button', { name: /upload 1 file/i });
+		if (await submitBtn.isVisible({ timeout: 3000 })) {
+			await submitBtn.click();
 		}
 
 		const header = page.locator('[data-testid="transfer-header"]');
@@ -85,7 +105,13 @@ test.describe('UI: Transfer Manager', () => {
 	});
 
 	test('clear completed removes finished transfers', async ({ page }) => {
-		// Upload a file
+		// Open the upload modal
+		const uploadBtn = page.locator('button[title="Upload"]');
+		await expect(uploadBtn).toBeVisible({ timeout: 5_000 });
+		await uploadBtn.click();
+		await expect(page.getByText('Upload Files')).toBeVisible({ timeout: 5_000 });
+
+		// Set file
 		const fileInput = page.locator('input[type="file"]').first();
 		await fileInput.setInputFiles({
 			name: `transfer-clear-${Date.now()}.txt`,
@@ -93,9 +119,10 @@ test.describe('UI: Transfer Manager', () => {
 			buffer: Buffer.from('test')
 		});
 
-		const uploadBtn = page.getByRole('button', { name: /upload/i });
-		if (await uploadBtn.isVisible({ timeout: 3000 })) {
-			await uploadBtn.click();
+		// Submit upload
+		const submitBtn = page.getByRole('button', { name: /upload 1 file/i });
+		if (await submitBtn.isVisible({ timeout: 3000 })) {
+			await submitBtn.click();
 		}
 
 		await page.waitForTimeout(3000);

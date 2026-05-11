@@ -83,7 +83,7 @@ test.describe('API: Copy/Move/Rename', () => {
 		const headSrc = await authedRequest.get(
 			`/api/s3/head?bucket=${BUCKETS.test}&key=${encodeURIComponent(srcKey)}`
 		);
-		expect(headSrc.status()).toBe(500); // Object not found
+		expect(headSrc.status()).toBe(404); // Object not found
 
 		// Verify dest exists
 		const headDest = await authedRequest.get(
@@ -131,7 +131,7 @@ test.describe('API: Copy/Move/Rename', () => {
 		const headOld = await authedRequest.get(
 			`/api/s3/head?bucket=${BUCKETS.test}&key=${encodeURIComponent(srcKey)}`
 		);
-		expect(headOld.status()).toBe(500);
+		expect(headOld.status()).toBe(404);
 
 		// Verify new exists
 		const headNew = await authedRequest.get(

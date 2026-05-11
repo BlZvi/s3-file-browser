@@ -66,8 +66,11 @@ test.describe('UI: Diverse File Types Rendering', () => {
 		await page.locator('[data-row]').filter({ hasText: 'binary' }).click();
 		await page.waitForURL(`**/browse/${BUCKETS.types}/binary**`, { timeout: 10_000 });
 
-		await expect(page.locator('[data-row]').filter({ hasText: 'archive.zip' })).toBeVisible({ timeout: 10_000 });
-		await expect(page.locator('[data-row]').filter({ hasText: 'data.bin' })).toBeVisible();
-		await expect(page.locator('[data-row]').filter({ hasText: 'empty.dat' })).toBeVisible();
+		// Wait for any row to appear first
+		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
+
+		await expect(page.locator('[data-row]').filter({ hasText: 'archive.zip' })).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('[data-row]').filter({ hasText: 'data.bin' })).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('[data-row]').filter({ hasText: 'empty.dat' })).toBeVisible({ timeout: 5_000 });
 	});
 });

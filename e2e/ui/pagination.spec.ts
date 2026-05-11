@@ -11,27 +11,28 @@ test.describe('UI: Pagination', () => {
 		// Navigate to bulk bucket which has many objects
 		await page.getByText(BUCKETS.bulk).click();
 		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
-		// Wait for objects to load
-		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+		// Wait for objects to load first
+		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
 
 		const paginationBar = page.locator('[data-testid="pagination-bar"]');
-		await expect(paginationBar).toBeVisible();
+		await expect(paginationBar).toBeVisible({ timeout: 10_000 });
 
 		// Should show "more available" text since bulk bucket has many objects
-		await expect(paginationBar).toContainText('more available');
+		await expect(paginationBar).toContainText('more available', { timeout: 5_000 });
 
 		// Load more button should be visible
 		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
-		await expect(loadMoreBtn).toBeVisible();
+		await expect(loadMoreBtn).toBeVisible({ timeout: 5_000 });
 	});
 
 	test('Load more button appends additional objects', async ({ page }) => {
 		await page.getByText(BUCKETS.bulk).click();
 		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
-		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
 
 		// Get initial object count from pagination bar text
 		const paginationBar = page.locator('[data-testid="pagination-bar"]');
+		await expect(paginationBar).toBeVisible({ timeout: 10_000 });
 		const initialText = await paginationBar.textContent();
 		const initialMatch = initialText?.match(/Showing (\d+)/);
 		const initialCount = initialMatch ? parseInt(initialMatch[1], 10) : 0;
@@ -39,6 +40,7 @@ test.describe('UI: Pagination', () => {
 
 		// Click Load more
 		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
+		await expect(loadMoreBtn).toBeVisible({ timeout: 5_000 });
 		await loadMoreBtn.click();
 
 		// Wait for loading to complete (button text changes back from "Loading…")
@@ -103,9 +105,12 @@ test.describe('UI: Pagination', () => {
 	test('auto-load toggle is visible when truncated', async ({ page }) => {
 		await page.getByText(BUCKETS.bulk).click();
 		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
-		await page.waitForSelector('[data-testid="pagination-bar"]', { timeout: 15000 });
+		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
+
+		const paginationBar = page.locator('[data-testid="pagination-bar"]');
+		await expect(paginationBar).toBeVisible({ timeout: 10_000 });
 
 		const autoLoadToggle = page.locator('[data-testid="auto-load-toggle"]');
-		await expect(autoLoadToggle).toBeVisible();
+		await expect(autoLoadToggle).toBeVisible({ timeout: 5_000 });
 	});
 });

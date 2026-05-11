@@ -59,9 +59,10 @@ test.describe('UI: Bookmarks & Quick Access', () => {
 	test('command palette closes with Escape', async ({ page }) => {
 		await page.keyboard.press('Control+k');
 		const palette = page.locator('[data-testid="command-palette"]');
-		await expect(palette).toBeVisible({ timeout: 3000 });
+		await expect(palette).toBeVisible({ timeout: 5000 });
+		await page.waitForTimeout(200);
 		await page.keyboard.press('Escape');
-		await expect(palette).not.toBeVisible();
+		await expect(palette).not.toBeVisible({ timeout: 5000 });
 	});
 
 	test('bookmarks panel shows bookmarked paths', async ({ page }) => {

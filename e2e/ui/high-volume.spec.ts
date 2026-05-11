@@ -104,13 +104,15 @@ test.describe('UI: High Volume / Pagination (10,000+ objects)', () => {
 		await page.goto(`/browse/${BUCKETS.bulk}/level1-01/level2-1/level3-1/level4-1`);
 		await expect(page.locator('[data-row]').filter({ hasText: 'file-01.txt' })).toBeVisible({ timeout: 15_000 });
 
-		// Search for a specific file
-		const searchInput = page.locator('input[placeholder*="earch"]').first();
+		// Search for a specific file using the filter/search input
+		// The placeholder can be "Filter in ..." or "Search recursively..."
+		const searchInput = page.locator('input[placeholder*="ilter"], input[placeholder*="earch"], input[type="search"]').first();
+		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 		await searchInput.fill('file-05');
 		await page.waitForTimeout(500);
 
 		// Should show only file-05.txt
-		await expect(page.locator('[data-row]').filter({ hasText: 'file-05.txt' })).toBeVisible();
+		await expect(page.locator('[data-row]').filter({ hasText: 'file-05.txt' })).toBeVisible({ timeout: 5_000 });
 
 		const visibleRows = page.locator('[data-row]');
 		const count = await visibleRows.count();

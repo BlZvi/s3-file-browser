@@ -84,20 +84,18 @@ test.describe('UI: File Browser', () => {
 	});
 
 	test('logout button works', async ({ page }) => {
-		// Find and click logout button
-		const logoutBtn = page.getByRole('button', { name: /logout|sign out|disconnect/i });
-		if (await logoutBtn.isVisible()) {
-			await logoutBtn.click();
-		} else {
-			// Try finding it by icon or other means
-			const logoutLink = page.locator('button:has(svg)').filter({ hasText: /logout/i });
-			if (await logoutLink.isVisible()) {
-				await logoutLink.click();
-			}
-		}
+		// Navigate to a bucket first so the header is fully rendered
+		await page.getByText(BUCKETS.test).click();
+		await page.waitForURL(`**/browse/${BUCKETS.test}**`, { timeout: 10_000 });
+		await expect(page.getByText('hello.txt')).toBeVisible({ timeout: 10_000 });
+
+		// Find the logout button by its title attribute
+		const logoutBtn = page.locator('button[title*="Logout"], button[title*="logout"]').first();
+		await expect(logoutBtn).toBeVisible({ timeout: 5_000 });
+		await logoutBtn.click();
 
 		// Should redirect to login page
 		await page.waitForURL('/', { timeout: 10_000 });
-		await expect(page.locator('#accessKeyId')).toBeVisible();
+		await expect(page.locator('#accessKeyId')).toBeVisible({ timeout: 5_000 });
 	});
 });

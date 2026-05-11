@@ -12,13 +12,16 @@ test.describe('UI: Create Folder', () => {
 
 	test('create folder modal opens', async ({ page }) => {
 		// Find and click the create folder button
-		const createFolderBtn = page.locator('button[title*="folder" i], button[title*="Folder" i]');
-		if (await createFolderBtn.isVisible()) {
-			await createFolderBtn.click();
+		const createFolderBtn = page.locator('button[title="Create Folder"]');
+		await expect(createFolderBtn).toBeVisible({ timeout: 5_000 });
+		await createFolderBtn.click();
 
-			// Modal should appear with folder name input
-			await expect(page.getByText(/create folder|new folder/i)).toBeVisible({ timeout: 5_000 });
-		}
+		// Modal should appear with folder name input
+		await expect(page.getByText(/create folder/i)).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('#folderName')).toBeVisible({ timeout: 3_000 });
+
+		// Close the modal
+		await page.getByRole('button', { name: /cancel/i }).click();
 	});
 
 	test('create folder with valid name', async ({ page, request }) => {
