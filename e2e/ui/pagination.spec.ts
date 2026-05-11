@@ -30,27 +30,24 @@ test.describe('UI: Pagination', () => {
 		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
 		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
 
-		// Get initial object count from pagination bar text
+		// Get initial row count
 		const paginationBar = page.locator('[data-testid="pagination-bar"]');
 		await expect(paginationBar).toBeVisible({ timeout: 10_000 });
-		const initialText = await paginationBar.textContent();
-		const initialMatch = initialText?.match(/Showing (\d+)/);
-		const initialCount = initialMatch ? parseInt(initialMatch[1], 10) : 0;
-		expect(initialCount).toBeGreaterThan(0);
+		const initialRowCount = await page.locator('[data-row]').count();
+		expect(initialRowCount).toBeGreaterThan(0);
 
 		// Click Load more
 		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
 		await expect(loadMoreBtn).toBeVisible({ timeout: 5_000 });
 		await loadMoreBtn.click();
 
-		// Wait for loading to complete (button text changes back from "Loading…")
-		await expect(loadMoreBtn).not.toContainText('Loading', { timeout: 15000 });
+		// Wait for the pagination bar text to update (object count increases)
+		// Use a longer timeout since loading from a large bucket can be slow
+		await expect(paginationBar).not.toContainText(`Showing ${initialRowCount}`, { timeout: 30_000 });
 
-		// Object count should have increased
-		const updatedText = await paginationBar.textContent();
-		const updatedMatch = updatedText?.match(/(?:Showing|All) ([\d,]+)/);
-		const updatedCount = updatedMatch ? parseInt(updatedMatch[1].replace(/,/g, ''), 10) : 0;
-		expect(updatedCount).toBeGreaterThan(initialCount);
+		// Row count should have increased
+		const updatedRowCount = await page.locator('[data-row]').count();
+		expect(updatedRowCount).toBeGreaterThan(initialRowCount);
 	});
 
 	test('page size selector is visible and has options', async ({ page }) => {
