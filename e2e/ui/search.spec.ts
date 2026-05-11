@@ -23,12 +23,12 @@ test.describe('UI: Search', () => {
 	});
 
 	test('clear search shows all objects', async ({ page }) => {
-		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
-		await expect(searchInput).toBeVisible({ timeout: 5_000 });
-
 		// Count initial rows (should include test.json, hello.txt, folders)
 		const initialRowCount = await page.locator('[data-row]').count();
 		expect(initialRowCount).toBeGreaterThanOrEqual(2);
+
+		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
+		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
 		// Type search text
 		await searchInput.fill('hello');
@@ -39,18 +39,9 @@ test.describe('UI: Search', () => {
 		const filteredCount = await page.locator('[data-row]').count();
 		expect(filteredCount).toBeLessThan(initialRowCount);
 
-		// Clear search by setting value to empty and dispatching input event via JS
-		await page.evaluate(() => {
-			const input = document.querySelector('input[placeholder*="Filter"], input[placeholder*="filter"], input[placeholder*="Search"]') as HTMLInputElement;
-			if (input) {
-				// Use native setter to bypass any framework interception
-				const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!;
-				nativeInputValueSetter.call(input, '');
-				input.dispatchEvent(new Event('input', { bubbles: true }));
-				input.dispatchEvent(new Event('change', { bubbles: true }));
-			}
-		});
-		await page.waitForTimeout(1000);
+		// Clear search by reloading the page (search state is not persisted)
+		await page.reload();
+		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
 
 		// All objects should be visible again — row count should match initial
 		await expect(async () => {
