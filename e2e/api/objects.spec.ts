@@ -57,14 +57,15 @@ test.describe('API: List Objects', () => {
 	});
 
 	test('follow continuationToken to get next page', async ({ authedRequest }) => {
-		// First page — 5 of 10 level1 folders
+		// First page — 5 items from bulk-bucket root (folders + flat files)
 		const res1 = await authedRequest.get(
 			`/api/s3/objects?bucket=${BUCKETS.bulk}&maxKeys=5`
 		);
 		const body1 = await res1.json();
 		expect(body1.continuationToken).toBeTruthy();
+		expect(body1.isTruncated).toBe(true);
 
-		// Second page
+		// Second page — should also return 5 items
 		const res2 = await authedRequest.get(
 			`/api/s3/objects?bucket=${BUCKETS.bulk}&maxKeys=5&continuationToken=${encodeURIComponent(body1.continuationToken)}`
 		);
@@ -72,8 +73,9 @@ test.describe('API: List Objects', () => {
 
 		const body2 = await res2.json();
 		expect(body2.objects.length).toBe(5);
-		// 10 level1 folders total, so second page should be the last
-		expect(body2.isTruncated).toBe(false);
+		// Bulk bucket has 10 folders + 250 flat files = 260 items, so still truncated after 10
+		expect(body2.isTruncated).toBe(true);
+		expect(body2.continuationToken).toBeTruthy();
 	});
 
 	test('list objects at 5-level deep path', async ({ authedRequest }) => {

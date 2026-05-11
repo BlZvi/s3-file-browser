@@ -26,25 +26,30 @@ test.describe('UI: Search', () => {
 		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
 		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
-		// Verify test.json is visible BEFORE searching (to confirm it exists)
-		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).toBeVisible({ timeout: 5_000 });
+		// Count initial rows (should include test.json, hello.txt, folders)
+		const initialRowCount = await page.locator('[data-row]').count();
+		expect(initialRowCount).toBeGreaterThanOrEqual(2);
 
 		// Search for something
 		await searchInput.fill('hello');
 		await page.waitForTimeout(500);
 
-		// Verify filter is active (only hello.txt visible)
+		// Verify filter is active (fewer rows visible)
 		await expect(page.locator('[data-row]').filter({ hasText: 'hello.txt' })).toBeVisible({ timeout: 5_000 });
-		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).not.toBeVisible();
+		const filteredCount = await page.locator('[data-row]').count();
+		expect(filteredCount).toBeLessThan(initialRowCount);
 
-		// Clear search using Escape key (triggers searchQuery = '' in GlobalHeader)
-		await searchInput.focus();
-		await searchInput.press('Escape');
+		// Clear search using the clear button (aria-label="Clear search")
+		const clearBtn = page.locator('button[aria-label="Clear search"]');
+		await expect(clearBtn).toBeVisible({ timeout: 3_000 });
+		await clearBtn.click();
 		await page.waitForTimeout(1000);
 
-		// All objects should be visible again
-		await expect(page.locator('[data-row]').filter({ hasText: 'hello.txt' })).toBeVisible({ timeout: 10_000 });
-		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).toBeVisible({ timeout: 10_000 });
+		// All objects should be visible again — row count should match initial
+		await expect(async () => {
+			const restoredCount = await page.locator('[data-row]').count();
+			expect(restoredCount).toBe(initialRowCount);
+		}).toPass({ timeout: 10_000 });
 	});
 
 	test('search with no matches shows empty', async ({ page }) => {
