@@ -26,30 +26,25 @@ test.describe('UI: Search', () => {
 		const searchInput = page.locator('input[placeholder*="search" i], input[placeholder*="filter" i], input[placeholder*="ilter"]').first();
 		await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
+		// Verify test.json is visible BEFORE searching (to confirm it exists)
+		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).toBeVisible({ timeout: 5_000 });
+
 		// Search for something
 		await searchInput.fill('hello');
 		await page.waitForTimeout(500);
 
 		// Verify filter is active (only hello.txt visible)
 		await expect(page.locator('[data-row]').filter({ hasText: 'hello.txt' })).toBeVisible({ timeout: 5_000 });
+		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).not.toBeVisible();
 
-		// Clear search using triple-click + backspace to ensure Svelte binding triggers
-		await searchInput.click({ clickCount: 3 });
-		await searchInput.press('Backspace');
+		// Clear search using Escape key (triggers searchQuery = '' in GlobalHeader)
+		await searchInput.focus();
+		await searchInput.press('Escape');
 		await page.waitForTimeout(1000);
 
-		// All objects should be visible again (use data-row locators for specificity)
+		// All objects should be visible again
 		await expect(page.locator('[data-row]').filter({ hasText: 'hello.txt' })).toBeVisible({ timeout: 10_000 });
-		// test.json should also be visible — use a broader check in case of extra files
-		const testJsonRow = page.locator('[data-row]').filter({ hasText: 'test.json' });
-		// If the row count is small enough (no virtual scroll), test.json must be present
-		const rowCount = await page.locator('[data-row]').count();
-		if (rowCount <= 20) {
-			await expect(testJsonRow).toBeVisible({ timeout: 10_000 });
-		} else {
-			// With many rows, just verify the filter is cleared by checking multiple items exist
-			expect(rowCount).toBeGreaterThan(1);
-		}
+		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('search with no matches shows empty', async ({ page }) => {

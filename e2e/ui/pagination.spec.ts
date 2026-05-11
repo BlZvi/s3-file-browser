@@ -30,24 +30,29 @@ test.describe('UI: Pagination', () => {
 		await page.waitForURL(`**/browse/${BUCKETS.bulk}**`);
 		await expect(page.locator('[data-row]').first()).toBeVisible({ timeout: 15_000 });
 
-		// Get initial row count
+		// Get initial object count from pagination bar text
 		const paginationBar = page.locator('[data-testid="pagination-bar"]');
 		await expect(paginationBar).toBeVisible({ timeout: 10_000 });
-		const initialRowCount = await page.locator('[data-row]').count();
-		expect(initialRowCount).toBeGreaterThan(0);
+		await expect(paginationBar).toContainText('more available', { timeout: 5_000 });
+		const initialText = await paginationBar.textContent();
+		const initialMatch = initialText?.match(/Showing ([\d,]+)/);
+		const initialCount = initialMatch ? parseInt(initialMatch[1].replace(/,/g, ''), 10) : 0;
+		expect(initialCount).toBeGreaterThan(0);
 
 		// Click Load more
 		const loadMoreBtn = page.locator('[data-testid="load-more-btn"]');
 		await expect(loadMoreBtn).toBeVisible({ timeout: 5_000 });
 		await loadMoreBtn.click();
 
-		// Wait for the pagination bar text to update (object count increases)
-		// Use a longer timeout since loading from a large bucket can be slow
-		await expect(paginationBar).not.toContainText(`Showing ${initialRowCount}`, { timeout: 30_000 });
-
-		// Row count should have increased
-		const updatedRowCount = await page.locator('[data-row]').count();
-		expect(updatedRowCount).toBeGreaterThan(initialRowCount);
+		// Wait for the pagination bar text to update — the object count should increase
+		// The bar shows "Showing N objects" where N increases after loading more
+		// Use a function that polls until the count changes
+		await expect(async () => {
+			const text = await paginationBar.textContent();
+			const match = text?.match(/(?:Showing|All) ([\d,]+)/);
+			const count = match ? parseInt(match[1].replace(/,/g, ''), 10) : 0;
+			expect(count).toBeGreaterThan(initialCount);
+		}).toPass({ timeout: 60_000 });
 	});
 
 	test('page size selector is visible and has options', async ({ page }) => {
