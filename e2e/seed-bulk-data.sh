@@ -52,9 +52,18 @@ done
 echo "=== Uploading 5-level deep hierarchy to bulk-bucket ==="
 mc cp --recursive /tmp/bulk/ local/bulk-bucket/
 
+# Add flat files at root for pagination testing (need >200 to trigger truncation)
+# Prefix with "zz-" so they sort AFTER level1-* folders in S3 lexicographic order
+echo "=== Adding flat files to bulk-bucket root for pagination ==="
+mkdir -p /tmp/bulk-flat
+for i in $(seq -w 1 250); do
+  echo "flat-${i}" > "/tmp/bulk-flat/zz-flat-file-${i}.txt"
+done
+mc cp --recursive /tmp/bulk-flat/ local/bulk-bucket/
+
 # Verify count
 DEEP_COUNT=$(mc ls --recursive local/bulk-bucket/ | wc -l | tr -d ' ')
-echo "=== Seeded ${DEEP_COUNT} objects in bulk-bucket (deep hierarchy) ==="
+echo "=== Seeded ${DEEP_COUNT} objects in bulk-bucket (deep hierarchy + flat files) ==="
 
 # ─────────────────────────────────────────────────────────────────────────
 # 4. Seed types-bucket — diverse file types and sizes
@@ -132,9 +141,8 @@ echo "body { margin: 0; padding: 0; font-family: sans-serif; }" > /tmp/types/doc
 
 # --- binary/ ---
 mkdir -p /tmp/types/binary
-# Create a valid ZIP file containing a small text file
-echo "zip content" > /tmp/zip-content.txt
-cd /tmp && zip -q /tmp/types/binary/archive.zip zip-content.txt && cd /
+# Create a fake ZIP file (zip command may not be available in minimal Docker images)
+dd if=/dev/urandom bs=1024 count=1 of=/tmp/types/binary/archive.zip 2>/dev/null
 # 100 KB random binary
 dd if=/dev/urandom bs=1024 count=100 of=/tmp/types/binary/data.bin 2>/dev/null
 # Empty file (0 bytes)
@@ -212,7 +220,7 @@ echo "========================================="
 echo "  Seed Complete!"
 echo "========================================="
 echo "  test-bucket:      5 objects (3 levels)"
-echo "  bulk-bucket:      ${DEEP_COUNT} objects (5 levels deep)"
+echo "  bulk-bucket:      ${DEEP_COUNT} objects (5 levels deep + 250 flat)"
 echo "  types-bucket:     ${TYPES_COUNT} objects (diverse types/sizes)"
 echo "  empty-bucket:     0 objects"
 echo "  versioned-bucket: 3 versions + 1 delete marker"

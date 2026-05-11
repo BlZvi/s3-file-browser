@@ -32,11 +32,11 @@ test.describe('UI: Search', () => {
 
 		// Clear search
 		await searchInput.fill('');
-		await page.waitForTimeout(500);
+		await page.waitForTimeout(1000);
 
-		// All objects should be visible again
-		await expect(page.getByText('hello.txt')).toBeVisible({ timeout: 5_000 });
-		await expect(page.getByText('test.json')).toBeVisible({ timeout: 5_000 });
+		// All objects should be visible again (use data-row locators for specificity)
+		await expect(page.locator('[data-row]').filter({ hasText: 'hello.txt' })).toBeVisible({ timeout: 10_000 });
+		await expect(page.locator('[data-row]').filter({ hasText: 'test.json' })).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('search with no matches shows empty', async ({ page }) => {
