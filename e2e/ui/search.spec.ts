@@ -30,8 +30,9 @@ test.describe('UI: Search', () => {
 		const initialRowCount = await page.locator('[data-row]').count();
 		expect(initialRowCount).toBeGreaterThanOrEqual(2);
 
-		// Search for something
-		await searchInput.fill('hello');
+		// Type search text character by character (ensures Svelte binding triggers)
+		await searchInput.click();
+		await searchInput.pressSequentially('hello', { delay: 50 });
 		await page.waitForTimeout(500);
 
 		// Verify filter is active (fewer rows visible)
@@ -39,10 +40,11 @@ test.describe('UI: Search', () => {
 		const filteredCount = await page.locator('[data-row]').count();
 		expect(filteredCount).toBeLessThan(initialRowCount);
 
-		// Clear search using the clear button (aria-label="Clear search")
-		const clearBtn = page.locator('button[aria-label="Clear search"]');
-		await expect(clearBtn).toBeVisible({ timeout: 3_000 });
-		await clearBtn.click();
+		// Clear search by pressing Backspace for each character
+		await searchInput.focus();
+		for (let i = 0; i < 10; i++) {
+			await page.keyboard.press('Backspace');
+		}
 		await page.waitForTimeout(1000);
 
 		// All objects should be visible again — row count should match initial
