@@ -35,6 +35,8 @@ Copy [`.env.example`](.env.example) and adjust for your environment. Key variabl
 | `SESSION_SECRET` | **Required in production.** Encryption key for session cookies (AES-256-GCM). |
 | `ORIGIN` | Public URL of the app. Must match for CSRF protection to work. |
 | `S3_DEFAULT_ENDPOINT` | Pre-fills the endpoint field on the login form. |
+| `S3_DEFAULT_PUBLIC_ENDPOINT` | Pre-fills the public endpoint field (login form → Advanced options). |
+| `S3_PUBLIC_ENDPOINT` | Public endpoint used with fixed credentials. See below. |
 | `S3_ACCESS_KEY` + `S3_SECRET_KEY` | Enables fixed credentials mode (skips login). |
 | `S3_BUCKET` | Restricts the app to a single bucket (skips `ListBuckets`). See below. |
 | `OIDC_ISSUER` + `OIDC_CLIENT_ID` + `OIDC_CLIENT_SECRET` | Enables SSO login via OpenID Connect. |
@@ -46,6 +48,14 @@ Copy [`.env.example`](.env.example) and adjust for your environment. Key variabl
 **Fixed credentials** — set `S3_ACCESS_KEY` and `S3_SECRET_KEY` env vars. Login is skipped; all users share the same S3 session. Only use behind a VPN or auth proxy.
 
 **OIDC / SSO** — set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`. Works with Keycloak, Okta, Authentik, Azure AD, Google, etc. Callback URL: `https://<your-domain>/api/auth/oidc/callback`. Can be combined with fixed credentials (SSO gate + shared S3 access) or manual credentials (SSO gate + per-user S3 keys).
+
+### Separate Public Endpoint (in-cluster S3)
+
+When the app reaches S3 over an internal URL (e.g. `http://seaweedfs-s3.storage.svc:8333` inside Kubernetes) that browsers can't reach, set a **public endpoint** — either per user in the login form under *Advanced options*, or via `S3_PUBLIC_ENDPOINT` (fixed credentials) / `S3_DEFAULT_PUBLIC_ENDPOINT` (pre-fill). The server keeps using the internal endpoint for all S3 API calls, but signs every URL handed to the browser — previews, downloads, uploads, multipart parts and share links — against the public endpoint, and adds it to the CSP.
+
+Requirements on the public side:
+- The ingress / reverse proxy must forward requests **with the original `Host` header and path** unchanged; presigned URLs are SigV4-signed over the host, so rewriting it breaks the signature.
+- The bucket's CORS configuration must allow the app's origin (`ORIGIN`) for `GET`/`PUT`, and expose the `ETag` header for multipart uploads.
 
 ### Single-Bucket Mode
 
@@ -258,6 +268,7 @@ helm install s3-viewer ./chart \
 | `ingress.className` | Ingress class name | `""` |
 | `env.ORIGIN` | External URL of the app | `http://localhost:3000` |
 | `env.S3_DEFAULT_ENDPOINT` | Pre-fill S3 endpoint in login | `""` |
+| `env.S3_DEFAULT_PUBLIC_ENDPOINT` | Pre-fill public (browser-facing) endpoint in login | `""` |
 | `env.S3_DEFAULT_REGION` | Pre-fill S3 region in login | `us-east-1` |
 | `secrets.SESSION_SECRET` | Session encryption secret | `""` (required) |
 | `secrets.S3_ACCESS_KEY` | Fixed S3 access key | `""` |

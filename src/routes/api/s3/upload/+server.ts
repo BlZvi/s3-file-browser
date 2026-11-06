@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createS3Client, object } from '$lib/server/s3';
+import { createPresignClient, object } from '$lib/server/s3';
 import { s3ErrorDetail } from '$lib/server/errors';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ error: 'bucket and key are required' }, { status: 400 });
 		}
 
-		const client = createS3Client(locals.credentials!);
+		const client = createPresignClient(locals.credentials!);
 		const presignedUrl = await object.getUploadUrl(
 			client,
 			bucket,

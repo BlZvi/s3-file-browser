@@ -4,6 +4,7 @@ import { isOIDCEnabled } from '$lib/server/oidc';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	const defaultEndpoint = process.env.S3_DEFAULT_ENDPOINT || '';
+	const defaultPublicEndpoint = process.env.S3_DEFAULT_PUBLIC_ENDPOINT || '';
 	const defaultRegion = process.env.S3_DEFAULT_REGION || '';
 	const singleBucket = locals.singleBucket || null;
 
@@ -31,7 +32,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 			mode,
 			region: locals.credentials?.region,
 			endpoint: locals.credentials?.endpoint,
+			publicEndpoint: locals.credentials?.publicEndpoint,
 			defaultEndpoint,
+			defaultPublicEndpoint,
 			defaultRegion,
 			singleBucket
 		});
@@ -53,6 +56,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 				mode,
 				oidcEnabled,
 				defaultEndpoint,
+				defaultPublicEndpoint,
 				defaultRegion,
 				singleBucket
 			},
@@ -67,7 +71,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 		user,
 		region: locals.credentials?.region,
 		endpoint: locals.credentials?.endpoint,
+		publicEndpoint: locals.credentials?.publicEndpoint,
 		defaultEndpoint,
+		defaultPublicEndpoint,
 		defaultRegion,
 		singleBucket
 	});

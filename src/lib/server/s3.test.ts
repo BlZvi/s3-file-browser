@@ -71,7 +71,7 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 // Import after mocks are set up
-import { createS3Client, object, bucket } from './s3';
+import { createS3Client, createPresignClient, object, bucket } from './s3';
 
 // Helper to create a client for tests
 function makeClient() {
@@ -151,6 +151,36 @@ describe('createS3Client', () => {
 		const config = lastConstructorConfig();
 		expect(config.requestChecksumCalculation).toBe('WHEN_REQUIRED');
 		expect(config.responseChecksumValidation).toBe('WHEN_REQUIRED');
+	});
+});
+
+// ── createPresignClient ─────────────────────────────────────────────────
+
+describe('createPresignClient', () => {
+	it('signs against the public endpoint when one is set', () => {
+		createPresignClient({
+			accessKeyId: 'test-key',
+			secretAccessKey: 'test-secret',
+			region: 'us-east-1',
+			endpoint: 'http://seaweedfs-s3.storage.svc:8333',
+			publicEndpoint: 'https://s3.example.com'
+		});
+
+		const config = lastConstructorConfig();
+		expect(config.endpoint).toBe('https://s3.example.com');
+		expect(config.forcePathStyle).toBe(true);
+		expect(config.requestChecksumCalculation).toBe('WHEN_REQUIRED');
+	});
+
+	it('falls back to the regular endpoint without a public endpoint', () => {
+		createPresignClient({
+			accessKeyId: 'test-key',
+			secretAccessKey: 'test-secret',
+			region: 'us-east-1',
+			endpoint: 'http://localhost:9000'
+		});
+
+		expect(lastConstructorConfig().endpoint).toBe('http://localhost:9000');
 	});
 });
 

@@ -99,6 +99,20 @@ export function createS3Client(credentials: S3Credentials): S3Client {
 	return new S3Client(config);
 }
 
+/**
+ * Client used only to sign URLs handed to the browser (previews, downloads,
+ * uploads, multipart parts). SigV4 signs the Host header, so URLs must be
+ * signed against the endpoint the browser actually reaches — the public
+ * endpoint when the server talks to S3 over an internal (in-cluster) URL.
+ * Signing is local; this client never sends requests itself.
+ */
+export function createPresignClient(credentials: S3Credentials): S3Client {
+	return createS3Client({
+		...credentials,
+		endpoint: credentials.publicEndpoint || credentials.endpoint
+	});
+}
+
 async function listBuckets(client: S3Client): Promise<BucketInfo[]> {
 	const response = await client.send(new ListBucketsCommand({}));
 	return (response.Buckets || []).map((b) => ({

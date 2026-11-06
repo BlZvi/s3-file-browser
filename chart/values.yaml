@@ -98,6 +98,8 @@ env:
   S3_DEFAULT_REGION: "us-east-1"
   # S3_DEFAULT_ENDPOINT: ""
   # S3_ENDPOINT: ""
+  # S3_PUBLIC_ENDPOINT: ""          # browser-facing endpoint for presigned URLs (in-cluster S3)
+  # S3_DEFAULT_PUBLIC_ENDPOINT: ""  # pre-fills the public endpoint on the login form
   # S3_REGION: "us-east-1"
   # OIDC_ISSUER: ""
   # OIDC_CLIENT_ID: ""

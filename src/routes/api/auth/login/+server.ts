@@ -7,7 +7,7 @@ import { createS3Client, bucket as bucketApi } from '$lib/server/s3';
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 	try {
 		const body = await request.json();
-		const { accessKeyId, secretAccessKey, region, endpoint, sessionToken } = body;
+		const { accessKeyId, secretAccessKey, region, endpoint, publicEndpoint, sessionToken } = body;
 
 		if (!accessKeyId || !secretAccessKey) {
 			return json({ error: 'Access Key ID and Secret Access Key are required' }, { status: 400 });
@@ -18,6 +18,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
 			secretAccessKey,
 			region: region || 'us-east-1',
 			endpoint: endpoint || undefined,
+			publicEndpoint: publicEndpoint || undefined,
 			...(sessionToken && { sessionToken })
 		};
 

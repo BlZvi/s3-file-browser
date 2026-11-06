@@ -3,6 +3,7 @@ export interface S3Credentials {
 	secretAccessKey: string;
 	region: string;
 	endpoint?: string; // Optional: for MinIO, DigitalOcean Spaces, etc.
+	publicEndpoint?: string; // Optional: browser-facing endpoint for presigned URLs (falls back to endpoint)
 	sessionToken?: string; // Optional: for STS temporary credentials
 }
 

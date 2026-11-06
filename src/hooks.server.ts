@@ -21,6 +21,7 @@ export function getFixedCredentials(): S3Credentials | null {
 		secretAccessKey,
 		region: process.env.S3_REGION || 'us-east-1',
 		endpoint: process.env.S3_ENDPOINT || undefined,
+		publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || undefined,
 		...(process.env.S3_SESSION_TOKEN && { sessionToken: process.env.S3_SESSION_TOKEN })
 	};
 }
@@ -43,39 +44,47 @@ const STATIC_SECURITY_HEADERS: Record<string, string> = {
 	'X-XSS-Protection': '1; mode=block'
 };
 
-function buildCSP(s3Endpoint?: string): string {
+function toOrigin(endpoint: string): string {
 	// Extract just the origin (protocol + host + port) from the endpoint URL
 	// to ensure CSP matches all paths on the S3 server
-	let origin = '';
-	if (s3Endpoint) {
-		try {
-			const parsed = new URL(s3Endpoint);
-			origin = parsed.origin;
-		} catch {
-			// If URL parsing fails, strip trailing slashes and use as-is
-			origin = s3Endpoint.replace(/\/+$/, '');
-		}
+	try {
+		return new URL(endpoint).origin;
+	} catch {
+		// If URL parsing fails, strip trailing slashes and use as-is
+		return endpoint.replace(/\/+$/, '');
 	}
-	const connectSrc = origin ? `connect-src 'self' ${origin}` : "connect-src 'self'";
-	const imgSrc = origin
-		? `img-src 'self' data: blob: ${origin}`
+}
+
+function buildCSP(s3Endpoints: string[] = []): string {
+	const origins = [...new Set(s3Endpoints.filter(Boolean).map(toOrigin))].join(' ');
+	const connectSrc = origins ? `connect-src 'self' ${origins}` : "connect-src 'self'";
+	const imgSrc = origins
+		? `img-src 'self' data: blob: ${origins}`
 		: "img-src 'self' data: blob:";
 	return `default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; ${imgSrc}; ${connectSrc}; font-src 'self' https://fonts.gstatic.com`;
 }
 
-function addSecurityHeaders(response: Response, s3Endpoint?: string): Response {
+function addSecurityHeaders(response: Response, s3Endpoints: string[]): Response {
 	for (const [key, value] of Object.entries(STATIC_SECURITY_HEADERS)) {
 		response.headers.set(key, value);
 	}
-	response.headers.set('Content-Security-Policy', buildCSP(s3Endpoint));
+	response.headers.set('Content-Security-Policy', buildCSP(s3Endpoints));
 	return response;
 }
 
 /**
- * Resolve the S3 endpoint from environment variables or session credentials.
+ * Resolve the S3 endpoints the browser may talk to (for CSP) from environment
+ * variables or session credentials: the regular endpoint plus, when set, the
+ * public endpoint that presigned URLs are signed against.
  */
-function resolveS3Endpoint(credentials?: S3Credentials | null): string | undefined {
-	return process.env.S3_ENDPOINT || process.env.S3_DEFAULT_ENDPOINT || credentials?.endpoint || undefined;
+function resolveS3Endpoints(credentials?: S3Credentials | null): string[] {
+	const endpoint =
+		process.env.S3_ENDPOINT || process.env.S3_DEFAULT_ENDPOINT || credentials?.endpoint;
+	const publicEndpoint =
+		process.env.S3_PUBLIC_ENDPOINT ||
+		credentials?.publicEndpoint ||
+		process.env.S3_DEFAULT_PUBLIC_ENDPOINT;
+	return [endpoint, publicEndpoint].filter((e): e is string => !!e);
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -151,7 +160,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (fixedCreds && !isOIDCEnabled()) {
 		event.locals.credentials = fixedCreds;
 		const response = await resolve(event);
-		return addSecurityHeaders(response, resolveS3Endpoint(fixedCreds));
+		return addSecurityHeaders(response, resolveS3Endpoints(fixedCreds));
 	}
 
 	// --- Session decryption helper ---
@@ -179,7 +188,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Always allow auth endpoints and root page
 		if (event.url.pathname === '/' || event.url.pathname.startsWith('/api/auth')) {
 			const response = await resolve(event);
-			return addSecurityHeaders(response, resolveS3Endpoint(fixedCreds));
+			return addSecurityHeaders(response, resolveS3Endpoints(fixedCreds));
 		}
 
 		// Protected routes require OIDC authentication
@@ -201,7 +210,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 
 		const response = await resolve(event);
-		return addSecurityHeaders(response, resolveS3Endpoint(fixedCreds));
+		return addSecurityHeaders(response, resolveS3Endpoints(fixedCreds));
 	}
 
 	// --- OIDC mode (without fixed creds) ---
@@ -209,7 +218,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Always allow auth endpoints and root page
 		if (event.url.pathname === '/' || event.url.pathname.startsWith('/api/auth')) {
 			const response = await resolve(event);
-			return addSecurityHeaders(response, resolveS3Endpoint(event.locals.credentials));
+			return addSecurityHeaders(response, resolveS3Endpoints(event.locals.credentials));
 		}
 
 		// Protected routes
@@ -245,14 +254,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 
 		const response = await resolve(event);
-		return addSecurityHeaders(response, resolveS3Endpoint(event.locals.credentials));
+		return addSecurityHeaders(response, resolveS3Endpoints(event.locals.credentials));
 	}
 
 	// --- Manual mode (default) ---
 	// Always allow auth endpoints and the root page (login)
 	if (event.url.pathname === '/' || event.url.pathname.startsWith('/api/auth')) {
 		const response = await resolve(event);
-		return addSecurityHeaders(response, resolveS3Endpoint(event.locals.credentials));
+		return addSecurityHeaders(response, resolveS3Endpoints(event.locals.credentials));
 	}
 
 	// Protect all /api/s3/* and /browse/* routes
@@ -273,5 +282,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const response = await resolve(event);
-	return addSecurityHeaders(response, resolveS3Endpoint(event.locals.credentials));
+	return addSecurityHeaders(response, resolveS3Endpoints(event.locals.credentials));
 };
