@@ -15,6 +15,7 @@ services:
       # - S3_ACCESS_KEY=minioadmin
       # - S3_SECRET_KEY=minioadmin
       # - S3_ENDPOINT=http://minio:9000
+      # - S3_PUBLIC_ENDPOINT=http://localhost:9000  # Browser-facing endpoint for up/downloads
       # - S3_REGION=us-east-1
       # - S3_SESSION_TOKEN=          # Optional: for STS temporary credentials
       # OIDC / SSO login (Okta, Keycloak, Authentik, Azure AD, Google, etc.):

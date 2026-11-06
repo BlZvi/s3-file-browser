@@ -16,6 +16,7 @@
   let accessKeyId = $state('');
   let secretAccessKey = $state('');
   let endpoint = $state('');
+  let publicEndpoint = $state('');
   let sessionToken = $state('');
   let defaultRegion = $state('');
   let rememberEndpoint = $state(false);
@@ -32,6 +33,11 @@
       endpoint = saved;
       rememberEndpoint = true;
     }
+    const savedPublic = localStorage.getItem('objectdock_public_endpoint');
+    if (savedPublic) {
+      publicEndpoint = savedPublic;
+      showAdvanced = true;
+    }
 
     try {
       const res = await fetch('/api/auth/session');
@@ -39,6 +45,10 @@
         const data = await res.json();
         if (!saved && data.defaultEndpoint) {
           endpoint = data.defaultEndpoint;
+        }
+        if (!savedPublic && data.defaultPublicEndpoint) {
+          publicEndpoint = data.defaultPublicEndpoint;
+          showAdvanced = true;
         }
         if (data.defaultRegion) {
           defaultRegion = data.defaultRegion;
@@ -81,6 +91,11 @@
     } else {
       localStorage.removeItem('objectdock_endpoint');
     }
+    if (rememberEndpoint && publicEndpoint) {
+      localStorage.setItem('objectdock_public_endpoint', publicEndpoint);
+    } else {
+      localStorage.removeItem('objectdock_public_endpoint');
+    }
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -91,6 +106,7 @@
           secretAccessKey,
           region: defaultRegion || 'us-east-1',
           endpoint: endpoint || undefined,
+          publicEndpoint: publicEndpoint || undefined,
           ...(sessionToken && { sessionToken }),
         }),
       });
@@ -279,6 +295,19 @@
         Advanced options
       </button>
       {#if showAdvanced}
+        <div class="mt-2.5">
+          <label for="publicEndpoint" class="login-label">
+            Public Endpoint URL <span class="normal-case tracking-normal font-normal text-outline-variant dark:text-gray-500">(optional)</span>
+          </label>
+          <Input
+            id="publicEndpoint"
+            type="url"
+            placeholder="https://s3.example.com"
+            bind:value={publicEndpoint}
+            class="login-input"
+          />
+          <p class="mt-1 text-[12px] leading-[16px] text-outline dark:text-gray-500">Used by your browser for previews, uploads and downloads, if it can't reach the endpoint above (e.g. in-cluster S3)</p>
+        </div>
         <div class="mt-2.5">
           <label for="sessionToken" class="login-label">
             Session Token <span class="normal-case tracking-normal font-normal text-outline-variant dark:text-gray-500">(optional)</span>

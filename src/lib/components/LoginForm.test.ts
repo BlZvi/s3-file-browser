@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { render, screen, fireEvent } from '@testing-library/svelte';
 import LoginForm from './LoginForm.svelte';
 
 // Mock localStorage for onMount
@@ -20,6 +20,7 @@ vi.stubGlobal('fetch', fetchMock);
 describe('LoginForm', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		localStorageMock.getItem.mockReturnValue(null);
 		fetchMock.mockImplementation(() =>
 			Promise.resolve(new Response(JSON.stringify({ valid: false, defaultEndpoint: '', defaultRegion: '' }), { status: 401 }))
 		);
@@ -44,7 +45,7 @@ describe('LoginForm', () => {
 
 	it('renders Endpoint URL input field', () => {
 		render(LoginForm, { props: { onlogin: vi.fn() } });
-		const input = screen.getByLabelText(/endpoint url/i);
+		const input = screen.getByLabelText(/^endpoint url/i);
 		expect(input).toBeTruthy();
 	});
 
@@ -79,5 +80,39 @@ describe('LoginForm', () => {
 		localStorageMock.getItem.mockReturnValue('https://minio.example.com');
 		render(LoginForm, { props: { onlogin: vi.fn() } });
 		expect(localStorageMock.getItem).toHaveBeenCalledWith('objectdock_endpoint');
+	});
+
+	it('shows the Public Endpoint URL field under advanced options', async () => {
+		render(LoginForm, { props: { onlogin: vi.fn() } });
+		expect(screen.queryByLabelText(/public endpoint url/i)).toBeNull();
+		await fireEvent.click(screen.getByRole('button', { name: /advanced options/i }));
+		expect(screen.getByLabelText(/public endpoint url/i)).toBeTruthy();
+	});
+
+	it('pre-fills the public endpoint from server defaults and expands advanced options', async () => {
+		fetchMock.mockImplementation(() =>
+			Promise.resolve(
+				new Response(
+					JSON.stringify({ valid: false, defaultEndpoint: '', defaultPublicEndpoint: 'https://s3.example.com', defaultRegion: '' }),
+					{ status: 401 }
+				)
+			)
+		);
+		render(LoginForm, { props: { onlogin: vi.fn() } });
+		const input = (await screen.findByLabelText(/public endpoint url/i)) as HTMLInputElement;
+		expect(input.value).toBe('https://s3.example.com');
+	});
+
+	it('sends publicEndpoint in the login request', async () => {
+		render(LoginForm, { props: { onlogin: vi.fn() } });
+		await fireEvent.input(screen.getByLabelText(/access key id/i), { target: { value: 'key' } });
+		await fireEvent.input(screen.getByLabelText(/secret access key/i), { target: { value: 'secret' } });
+		await fireEvent.click(screen.getByRole('button', { name: /advanced options/i }));
+		await fireEvent.input(screen.getByLabelText(/public endpoint url/i), { target: { value: 'https://s3.example.com' } });
+		await fireEvent.click(screen.getByRole('button', { name: /connect to storage/i }));
+
+		const loginCall = (fetchMock.mock.calls as unknown as [string, RequestInit?][]).find(([url]) => url === '/api/auth/login');
+		expect(loginCall).toBeTruthy();
+		expect(JSON.parse(loginCall![1]!.body as string).publicEndpoint).toBe('https://s3.example.com');
 	});
 });
